@@ -4,6 +4,7 @@ import "./App.css";
 import { sendMessage, validateURL } from "./functions";
 import Button from "./components/Button";
 import Input from "./components/Input";
+import { SelectedClass } from "./types";
 
 // https://tutreg.com/?share=CS2030S:LAB:12H,CS2030S:REC:13,CS2040S:TUT:14,CS2040S:REC:03,GEA1000:TUT:E09,HSI1000:WS:C13,HSI1000:LAB:21,MA1521:TUT:18,MA1521:TUT:11,HSI1000:LAB:02,HSI1000:WS:C02,GEA1000:TUT:D01,CS2040S:REC:04,CS2030S:REC:01,CS2030S:LAB:08A,CS2030S:LAB:08C,CS2030S:REC:03,CS2040S:REC:02,GEA1000:TUT:D02,HSI1000:WS:C01,HSI1000:LAB:01,MA1521:TUT:10,MA1521:TUT:1,HSI1000:LAB:03,HSI1000:WS:C03,CS2040S:REC:01,CS2030S:REC:04,CS2030S:LAB:08B,CS2030S:LAB:08D,CS2030S:REC:05,HSI1000:WS:C05,MA1521:TUT:12,MA1521:TUT:13,CS2030S:REC:06,CS2030S:LAB:08F,CS2030S:LAB:08G,CS2030S:REC:07,CS2030S:REC:08,CS2030S:LAB:08H,CS2030S:LAB:08E,CS2030S:REC:10,CS2030S:REC:11,CS2030S:LAB:10D,CS2030S:LAB:10C,CS2030S:REC:09
 const codeMap: { [key: string]: string } = {
@@ -45,21 +46,38 @@ function App() {
 
             }).then(console.log).catch(console.log)
         }
-        const importStr = importUrl.split("?share=")[1];
+
+        const stripped = importUrl.replace("https://tutreg.com/order?", "")
+
+        const params = new URLSearchParams(stripped)
+
+        let classList: SelectedClass[] = [];
+        for (const p of params) {
+            if (p[0] === 'share') {
+                classList = p[1].split(",").map((module) => ({
+                    moduleCode: module.split(":")[0],
+                    lessonType: replacer(module.split(":")[1]),
+                    classNo: module.split(":")[2],
+                }));
+            }
+        }
+  
+
+        // const importStr = importUrl.split("?share=")[1];
         // Format the data
         // sample importStr: 'HSI1000:WS:F09,HSI1000:LAB:04'
-        const moduleList = importStr.split(",").map((module) => ({
-            moduleCode: module.split(":")[0],
-            lessonType: replacer(module.split(":")[1]),
-            classNo: module.split(":")[2],
-        }));
+        // const moduleList = importStr.split(",").map((module) => ({
+        //     moduleCode: module.split(":")[0],
+        //     lessonType: replacer(module.split(":")[1]),
+        //     classNo: module.split(":")[2],
+        // }));
 
         let type: "MODULE_DATA" | "RANK_DATA" =
             action === "select" ? "MODULE_DATA" : "RANK_DATA";
 
         sendMessage({
             type,
-            payload: moduleList,
+            payload: classList,
         })
             .then(result => {
                 if (result.error) {

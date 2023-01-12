@@ -1,21 +1,19 @@
-import { handleChromeError, sendMessage } from "../functions";
+import { handleChromeError, sendMessage, sleep } from "../functions";
 import { DOMMessage, DOMMessageResponse, SelectedClass } from "../types";
 
 // Function called when a new message is received
-const messagesFromReactAppListener = (
+const messagesFromReactAppListener =     (
     msg: DOMMessage,
     sender: chrome.runtime.MessageSender,
     sendResponse: (response: DOMMessageResponse) => void
 ) => {
     // console.log("[content.js]. Message received", msg);
     if (chrome.runtime.lastError) {
-
         handleChromeError(chrome.runtime.lastError);
+      
     } else {
         switch (msg.type) {
             case "MODULE_DATA": {
-
-
                 let data = msg.payload as SelectedClass[];
 
                 const resultContainer = msg.payload?.map(
@@ -41,16 +39,16 @@ const messagesFromReactAppListener = (
                 );
                 if (!modulesContainer) {
                     return sendResponse({
-                        error: "Select Classes dialog not found. Is it open?"
-                    })
+                        error: "Select Classes dialog not found. Is it open?",
+                    });
                 }
 
                 let children = modulesContainer.children;
 
                 if (!children || children.length === 0) {
                     return sendResponse({
-                        error: "Select Classes dialog not found. Is it open?"
-                    })
+                        error: "Select Classes dialog not found. Is it open?",
+                    });
                 }
 
                 for (let i = 0; i < children.length; i++) {
@@ -136,7 +134,6 @@ const messagesFromReactAppListener = (
                             // );
                         }
                     }
-                 
                 }
                 if (data.length) {
                     sendResponse({
@@ -157,8 +154,6 @@ const messagesFromReactAppListener = (
             }
             case "RANK_DATA": {
                 const data = msg.payload as SelectedClass[];
-                let result = data.map((class_) => ({ ...class_ }));
-
                 // const modulesContainer =
                 //     document.querySelector(".ps_box-scrollarea");
                 const modulesContainerOptions: (
@@ -178,9 +173,9 @@ const messagesFromReactAppListener = (
                 );
                 if (!classesContainer) {
                     sendResponse({
-                        error: "Rank classes dialog not found. Is it open?"
-                    })
-                    return
+                        error: "Rank classes dialog not found. Is it open?",
+                    });
+                    return;
                 }
 
                 const tableBody = classesContainer.querySelector(
@@ -240,14 +235,9 @@ const messagesFromReactAppListener = (
                 //     }
                 // }
 
-                result = ranker(children, data);
+                // result = await ranker(children, data);
 
-                if (result.length) {
-                    // error, couldn't rank a class
-
-                    // try one more time.
-                    result = ranker(children, data);
-               
+                ranker(children, data).then((result) => {
                     if (result.length) {
                         sendResponse({
                             error: `${
@@ -259,9 +249,31 @@ const messagesFromReactAppListener = (
                                 )
                                 .join(", ")}.`,
                         });
+                    } else {
+                        sendResponse({ payload: { text: "Successfully ranked." } });
                     }
-                }
-                sendResponse({ payload: { text: "Successfully ranked." } });
+                });
+                return true; // Indicate async. See: https://stackoverflow.com/questions/44056271/chrome-runtime-onmessage-response-with-async-await
+                // if (result.length) {
+                //     // error, couldn't rank a class
+
+                //     // try one more time.
+                //     result = await ranker(children, data);
+                //     console.log({result})
+                //     if (result.length) {
+                //         sendResponse({
+                //             error: `${
+                //                 result.length
+                //             } classes could not be ranked: ${result
+                //                 .map(
+                //                     (item) =>
+                //                         `${item.moduleCode} ${item.lessonType} ${item.classNo}`
+                //                 )
+                //                 .join(", ")}.`,
+                //         });
+                //     }
+                // }
+               
                 break;
             }
 
@@ -299,8 +311,9 @@ const messagesFromReactAppListener = (
                 break;
             }
         }
-    }
 
+        
+    }
 };
 
 /**
@@ -309,7 +322,7 @@ const messagesFromReactAppListener = (
 chrome.runtime &&
     chrome.runtime.onMessage.addListener(messagesFromReactAppListener);
 
-function ranker(children: HTMLCollection, data: SelectedClass[]) {
+async function ranker(children: HTMLCollection, data: SelectedClass[]) {
     let result = data.map((class_) => ({ ...class_ }));
     for (let i = 0; i < children.length; i++) {
         const class_ = children[i];
@@ -344,7 +357,7 @@ function ranker(children: HTMLCollection, data: SelectedClass[]) {
 
             select.value = (index + 1).toString();
             select.dispatchEvent(new Event("change"));
-
+            await sleep(10);
             result = result.filter(
                 (item) =>
                     moduleCode !== item.moduleCode ||

@@ -39,6 +39,12 @@ export const sendMessage = async (
     });
 };
 
+export const startingURL = "https://tutreg.com/order?share="
 export const validateURL = (url: string) => {
-    return url.startsWith("https://tutreg.com/?share=")
+    return url.startsWith(startingURL)
+}
+
+// sleep timer
+export function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }

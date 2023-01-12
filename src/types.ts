@@ -22,6 +22,7 @@ export interface DOMMessage {
     //     enabled?: boolean
     // }
     payload?: any;
+    tries?: number
 }
 
 export interface SelectedClass {

@@ -82,6 +82,16 @@ function App() {
             .then(result => {
                 if (result.error) {
                     alert(result.error)
+                } else if (result.payload?.ranker === "try_again" && result.payload?.tries === 1) {
+                    sendMessage({
+                        type,
+                        payload: classList,
+                        tries: result.payload?.tries
+                    }).then(result => {
+                        if (result.error) {
+                            alert(result.error)
+                        }
+                    })
                 }
             })
             .catch(console.log);

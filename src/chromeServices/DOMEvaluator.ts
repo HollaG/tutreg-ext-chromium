@@ -2,7 +2,7 @@ import { handleChromeError, sendMessage, sleep } from "../functions";
 import { DOMMessage, DOMMessageResponse, SelectedClass } from "../types";
 
 // Function called when a new message is received
-const messagesFromReactAppListener =     (
+const messagesFromReactAppListener = (
     msg: DOMMessage,
     sender: chrome.runtime.MessageSender,
     sendResponse: (response: DOMMessageResponse) => void
@@ -10,7 +10,6 @@ const messagesFromReactAppListener =     (
     // console.log("[content.js]. Message received", msg);
     if (chrome.runtime.lastError) {
         handleChromeError(chrome.runtime.lastError);
-      
     } else {
         switch (msg.type) {
             case "MODULE_DATA": {
@@ -236,24 +235,75 @@ const messagesFromReactAppListener =     (
                 // }
 
                 // result = await ranker(children, data);
-
+                console.log({ tries: msg.tries });
                 ranker(children, data).then((result) => {
+                    console.log({ result });
                     if (result.length) {
-                        sendResponse({
-                            error: `${
-                                result.length
-                            } classes could not be ranked: ${result
-                                .map(
-                                    (item) =>
-                                        `${item.moduleCode} ${item.lessonType} ${item.classNo}`
-                                )
-                                .join(", ")}.`,
-                        });
+                        // sendResponse({
+                        //     error: `Please click the 'Auto-rank' button again. This is required due to the way NUS has coded their website.\nSorry for the inconvience. If this message persists, contact the developer at https://t.me/+sbR6NJfo7axkNWE1.`
+                        // })
+                        console.log("trying again!!!");
+                        if (msg.tries && msg.tries === 1) {
+                            // second try already, give up
+                            sendResponse({
+                                error: `${
+                                    result.length
+                                } classes could not be ranked: ${result
+                                    .map(
+                                        (item) =>
+                                            `${item.moduleCode} ${item.lessonType} ${item.classNo}`
+                                    )
+                                    .join(", ")}.`,
+                            });
+                        } else {
+                            sendResponse({
+                                payload: {
+                                    ranker: "try_again",
+                                    tries: 1,
+                                },
+                            });
+                        }
                     } else {
-                        sendResponse({ payload: { text: "Successfully ranked." } });
+                        sendResponse({
+                            payload: { text: "Successfully ranked." },
+                        });
                     }
                 });
+
+                // const result = ranker(children, data);
+
+                // because of how nus does this, we need to try this again.
+                // Possible need to try again. Only if tries < 2
+                // if (!msg.tries || msg.tries < 2) {
+                //     console.log("trying again");
+                //     sendResponse({
+                //         payload: {
+                //             ranker: "try_again",
+                //             tries: msg.tries ? msg.tries + 1 : 1,
+                //         },
+                //     });
+                // } else {
+                //     // error!
+                //     if (result.length) {
+                //         sendResponse({
+                //             error: `${
+                //                 result.length
+                //             } classes could not be ranked: ${result
+                //                 .map(
+                //                     (item) =>
+                //                         `${item.moduleCode} ${item.lessonType} ${item.classNo}`
+                //                 )
+                //                 .join(", ")}.`,
+                //         });
+                //     } else {
+                //         sendResponse({
+                //             payload: { text: "Successfully ranked." },
+                //         });
+                //     }
+                // }
+
                 return true; // Indicate async. See: https://stackoverflow.com/questions/44056271/chrome-runtime-onmessage-response-with-async-await
+
                 // if (result.length) {
                 //     // error, couldn't rank a class
 
@@ -273,7 +323,7 @@ const messagesFromReactAppListener =     (
                 //         });
                 //     }
                 // }
-               
+
                 break;
             }
 
@@ -311,8 +361,6 @@ const messagesFromReactAppListener =     (
                 break;
             }
         }
-
-        
     }
 };
 
@@ -323,8 +371,10 @@ chrome.runtime &&
     chrome.runtime.onMessage.addListener(messagesFromReactAppListener);
 
 async function ranker(children: HTMLCollection, data: SelectedClass[]) {
+    console.log("ranker called");
     let result = data.map((class_) => ({ ...class_ }));
     for (let i = 0; i < children.length; i++) {
+        // console.log("-------------------------------------")
         const class_ = children[i];
 
         const classNoContainer = class_.children[0] as HTMLElement;
@@ -337,6 +387,7 @@ async function ranker(children: HTMLCollection, data: SelectedClass[]) {
         const lessonType = moduleActivityArr.join(" ");
 
         // look for the index of this in data
+        // console.log({data})
         const index = data.findIndex((item) => {
             return (
                 moduleCode === item.moduleCode &&
@@ -344,16 +395,18 @@ async function ranker(children: HTMLCollection, data: SelectedClass[]) {
                 classNo.includes(item.classNo)
             );
         });
+        // console.log("index", index)
+        const select = class_.children[4].querySelector(
+            "select"
+        ) as HTMLSelectElement;
+
+        // console.log(select)
         if (index === -1) {
             console.log(
                 `Couldn't find one for ${moduleCode} ${lessonType} ${classNo}!`
             );
         } else {
             // set the dropdown menu to index+1
-
-            const select = class_.children[4].querySelector(
-                "select"
-            ) as HTMLSelectElement;
 
             select.value = (index + 1).toString();
             select.dispatchEvent(new Event("change"));
@@ -369,3 +422,56 @@ async function ranker(children: HTMLCollection, data: SelectedClass[]) {
 
     return result;
 }
+
+// function ranker(children: HTMLCollection, data: SelectedClass[]) {
+//     console.log("ranker called");
+//     let result = data.map((class_) => ({ ...class_ }));
+//     for (let i = 0; i < children.length; i++) {
+//         console.log("-------------------------------------");
+//         const class_ = children[i];
+
+//         const classNoContainer = class_.children[0] as HTMLElement;
+//         const classNo = classNoContainer.innerText;
+
+//         const moduleActivityContainer = class_.children[1] as HTMLElement;
+//         const moduleActivity = moduleActivityContainer.innerText;
+//         const moduleActivityArr = moduleActivity.split(" ");
+//         const moduleCode = moduleActivityArr.shift();
+//         const lessonType = moduleActivityArr.join(" ");
+
+//         // look for the index of this in data
+//         // console.log({ data });
+//         const index = data.findIndex((item) => {
+//             return (
+//                 moduleCode === item.moduleCode &&
+//                 item.lessonType === lessonType &&
+//                 classNo.includes(item.classNo)
+//             );
+//         });
+//         // console.log("index", index);
+//         const select = class_.children[4].querySelector(
+//             "select"
+//         ) as HTMLSelectElement;
+
+//         // console.log(select);
+//         if (index === -1) {
+//             console.log(
+//                 `Couldn't find one for ${moduleCode} ${lessonType} ${classNo}!`
+//             );
+//         } else {
+//             // set the dropdown menu to index+1
+
+//             select.value = (index + 1).toString();
+//             select.dispatchEvent(new Event("change"));
+//             // await sleep(10);
+//             result = result.filter(
+//                 (item) =>
+//                     moduleCode !== item.moduleCode ||
+//                     item.lessonType !== lessonType ||
+//                     !classNo.includes(item.classNo)
+//             );
+//         }
+//     }
+
+//     return result;
+// }

@@ -38,7 +38,13 @@ function App() {
 
     const [error, setError] = useState("");
 
-    const actionHandler = (action: "select" | "rank") => {
+    const actionHandler = (action: "select" | "rank" | "expand") => {
+        if (action === "expand") {
+            return sendMessage({
+                type: "EXPAND",
+
+            }).then(console.log).catch(console.log)
+        }
         const importStr = importUrl.split("?share=")[1];
         // Format the data
         // sample importStr: 'HSI1000:WS:F09,HSI1000:LAB:04'
@@ -55,7 +61,11 @@ function App() {
             type,
             payload: moduleList,
         })
-            .then(console.log)
+            .then(result => {
+                if (result.error) {
+                    alert(result.error)
+                }
+            })
             .catch(console.log);
     };
 
@@ -93,12 +103,15 @@ function App() {
                 )}
             </div>
             <div className="container p-1 flex justify-between">
-                {/* <Button> Expand </Button> */}
+                <Button onClick={() => actionHandler("expand")}>
+                    {" "}
+                    Expand Dialog
+                </Button>
 
                 <Button
                     onClick={() => actionHandler("select")}
                     classes="w-40"
-                    moreProps={{ disabled: !!error || !importUrl}}
+                    moreProps={{ disabled: !!error || !importUrl }}
                 >
                     {" "}
                     Auto-select{" "}
@@ -113,7 +126,14 @@ function App() {
                 </Button>
             </div>
             <div className="text-center">
-                <a href="https://tutreg.com/extension#usage" target="_blank" className="text-xs text-gray-500 text-center underline"> How to use? </a>
+                <a
+                    href="https://tutreg.com/extension#usage"
+                    target="_blank"
+                    className="text-xs text-gray-500 text-center underline"
+                >
+                    {" "}
+                    How to use?{" "}
+                </a>
             </div>
         </div>
     );

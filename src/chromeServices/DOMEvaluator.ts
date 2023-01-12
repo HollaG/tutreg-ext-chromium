@@ -1,4 +1,4 @@
-import { handleChromeError } from "../functions";
+import { handleChromeError, sendMessage } from "../functions";
 import { DOMMessage, DOMMessageResponse, SelectedClass } from "../types";
 
 // Function called when a new message is received
@@ -7,16 +7,20 @@ const messagesFromReactAppListener = (
     sender: chrome.runtime.MessageSender,
     sendResponse: (response: DOMMessageResponse) => void
 ) => {
-    console.log("[content.js]. Message received", msg);
+    // console.log("[content.js]. Message received", msg);
     if (chrome.runtime.lastError) {
-        console.log("last error");
+
         handleChromeError(chrome.runtime.lastError);
     } else {
         switch (msg.type) {
             case "MODULE_DATA": {
-                console.log(msg.payload);
 
-                const data = msg.payload as SelectedClass[];
+
+                let data = msg.payload as SelectedClass[];
+
+                const resultContainer = msg.payload?.map(
+                    (class_: SelectedClass) => ({ ...class_ })
+                );
 
                 // const modulesContainer =
                 //     document.querySelector(".ps_box-scrollarea");
@@ -36,15 +40,19 @@ const messagesFromReactAppListener = (
                     (item) => item !== null
                 );
                 if (!modulesContainer) {
-                    return console.log("no scrollarea");
+                    return sendResponse({
+                        error: "Select Classes dialog not found. Is it open?"
+                    })
                 }
 
                 let children = modulesContainer.children;
 
                 if (!children || children.length === 0) {
-                    return console.log("no children");
+                    return sendResponse({
+                        error: "Select Classes dialog not found. Is it open?"
+                    })
                 }
-                console.log(children);
+
                 for (let i = 0; i < children.length; i++) {
                     const module = children[i];
 
@@ -52,14 +60,14 @@ const messagesFromReactAppListener = (
 
                     // todo : error handling
                     if (!moduleName) {
-                        console.log("no module name found");
+                        // console.log("no module name found");
                         continue;
                     }
                     console.log(`Checking ${moduleName}`);
 
                     const classesContainer = module.querySelector("tbody");
                     if (!classesContainer) {
-                        console.log("no classescontainer");
+                        // console.log("no classescontainer");
                         continue;
                     }
 
@@ -71,6 +79,8 @@ const messagesFromReactAppListener = (
                     // 2: Session (ignore)
                     // 3: Vacancy (ignore)
                     // 4: checkbox
+
+                    const results = [];
 
                     for (let j = 0; j < classes.length; j++) {
                         const class_ = classes[j];
@@ -111,6 +121,14 @@ const messagesFromReactAppListener = (
                             if (!checkbox.checked) {
                                 checkbox.click();
                             }
+
+                            // remove from data so we know it's already done
+                            data = data.filter(
+                                (class_) =>
+                                    !moduleName.includes(class_.moduleCode) ||
+                                    class_.lessonType !== lessonType ||
+                                    !classNo.includes(class_.classNo)
+                            );
                         } else {
                             // do nothing
                             // console.log(
@@ -118,11 +136,28 @@ const messagesFromReactAppListener = (
                             // );
                         }
                     }
+                 
                 }
+                if (data.length) {
+                    sendResponse({
+                        error: `${
+                            data.length
+                        } classes could not be found: ${data
+                            .map(
+                                (item) =>
+                                    `${item.moduleCode} ${item.lessonType} ${item.classNo}`
+                            )
+                            .join(", ")}`,
+                    });
+                }
+                sendResponse({
+                    payload: { data },
+                });
                 break;
             }
             case "RANK_DATA": {
                 const data = msg.payload as SelectedClass[];
+                let result = data.map((class_) => ({ ...class_ }));
 
                 // const modulesContainer =
                 //     document.querySelector(".ps_box-scrollarea");
@@ -142,7 +177,10 @@ const messagesFromReactAppListener = (
                     (item) => item !== null
                 );
                 if (!classesContainer) {
-                    return console.log("no table");
+                    sendResponse({
+                        error: "Rank classes dialog not found. Is it open?"
+                    })
+                    return
                 }
 
                 const tableBody = classesContainer.querySelector(
@@ -157,60 +195,112 @@ const messagesFromReactAppListener = (
                 // 2: Session (ignore)
                 // 3: Vacancy (ignore)
                 // 4: rank select
-                for (let i = 0; i < children.length; i++) {
-                    const class_ = children[i];
 
-                    const classNoContainer = class_.children[0] as HTMLElement;
-                    const classNo = classNoContainer.innerText;
+                // for (let i = 0; i < children.length; i++) {
+                //     const class_ = children[i];
 
-                    const moduleActivityContainer = class_
-                        .children[1] as HTMLElement;
-                    const moduleActivity = moduleActivityContainer.innerText;
-                    const moduleActivityArr = moduleActivity.split(" ");
-                    const moduleCode = moduleActivityArr.shift();
-                    const lessonType = moduleActivityArr.join(" ");
+                //     const classNoContainer = class_.children[0] as HTMLElement;
+                //     const classNo = classNoContainer.innerText;
 
-                    // look for the index of this in data
-                    const index = data.findIndex((item) => {
-                        return (
-                            moduleCode === item.moduleCode &&
-                            item.lessonType === lessonType &&
-                            classNo.includes(item.classNo)
-                        );
-                    });
-                    if (index === -1) {
-                        console.log(
-                            `Couldn't find one for ${moduleCode} ${lessonType} ${classNo}!`
-                        );
-                    } else {
-                        // set the dropdown menu to index+1
+                //     const moduleActivityContainer = class_
+                //         .children[1] as HTMLElement;
+                //     const moduleActivity = moduleActivityContainer.innerText;
+                //     const moduleActivityArr = moduleActivity.split(" ");
+                //     const moduleCode = moduleActivityArr.shift();
+                //     const lessonType = moduleActivityArr.join(" ");
 
-                        const select = class_.children[4].querySelector(
-                            "select"
-                        ) as HTMLSelectElement;
+                //     // look for the index of this in data
+                //     const index = data.findIndex((item) => {
+                //         return (
+                //             moduleCode === item.moduleCode &&
+                //             item.lessonType === lessonType &&
+                //             classNo.includes(item.classNo)
+                //         );
+                //     });
+                //     if (index === -1) {
+                //         console.log(
+                //             `Couldn't find one for ${moduleCode} ${lessonType} ${classNo}!`
+                //         );
+                //     } else {
+                //         // set the dropdown menu to index+1
 
-                        select.value = (index + 1).toString();
-                        select.dispatchEvent(new Event("change"));
+                //         const select = class_.children[4].querySelector(
+                //             "select"
+                //         ) as HTMLSelectElement;
 
+                //         select.value = (index + 1).toString();
+                //         select.dispatchEvent(new Event("change"));
+
+                //         result = result.filter(
+                //             (item) =>
+                //                 moduleCode !== item.moduleCode ||
+                //                 item.lessonType !== lessonType ||
+                //                 !classNo.includes(item.classNo)
+                //         );
+                //     }
+                // }
+
+                result = ranker(children, data);
+
+                if (result.length) {
+                    // error, couldn't rank a class
+
+                    // try one more time.
+                    result = ranker(children, data);
+               
+                    if (result.length) {
+                        sendResponse({
+                            error: `${
+                                result.length
+                            } classes could not be ranked: ${result
+                                .map(
+                                    (item) =>
+                                        `${item.moduleCode} ${item.lessonType} ${item.classNo}`
+                                )
+                                .join(", ")}.`,
+                        });
                     }
                 }
+                sendResponse({ payload: { text: "Successfully ranked." } });
+                break;
             }
-            break;
+
+            case "EXPAND": {
+                const iframes = document.querySelectorAll("iframe");
+                if (!iframes || !iframes.length) {
+                    sendResponse({
+                        error: "Couldn't find a popup! Did you open the popup?",
+                    });
+
+                    return;
+                }
+
+                iframes.forEach((iframe) => {
+                    iframe.removeAttribute("height");
+                    iframe.removeAttribute("style");
+                    iframe.style.height = "100vh";
+                });
+
+                const dialogs: NodeListOf<HTMLElement> =
+                    document.querySelectorAll("div[role='dialog']");
+                if (!dialogs || !dialogs.length) {
+                    sendResponse({
+                        error: "Couldn't find a popup! Did you open the popup?",
+                    });
+
+                    return;
+                }
+
+                dialogs.forEach((dialog) => {
+                    dialog.style.top = "0px";
+                });
+
+                sendResponse({ payload: { text: "Hello from content.js" } });
+                break;
+            }
         }
-
-        sendResponse({ payload: { text: "Hello from content.js" } });
     }
-    // const headlines = Array.from(document.getElementsByTagName<"h1">("h1")).map(
-    //     (h1) => h1.innerText
-    // );
 
-    // Prepare the response object with information about the site
-    // const response: DOMMessageResponse = {
-    //     title: document.title,
-    //     headlines,
-    // };
-
-    // sendResponse(response);
 };
 
 /**
@@ -218,3 +308,51 @@ const messagesFromReactAppListener = (
  */
 chrome.runtime &&
     chrome.runtime.onMessage.addListener(messagesFromReactAppListener);
+
+function ranker(children: HTMLCollection, data: SelectedClass[]) {
+    let result = data.map((class_) => ({ ...class_ }));
+    for (let i = 0; i < children.length; i++) {
+        const class_ = children[i];
+
+        const classNoContainer = class_.children[0] as HTMLElement;
+        const classNo = classNoContainer.innerText;
+
+        const moduleActivityContainer = class_.children[1] as HTMLElement;
+        const moduleActivity = moduleActivityContainer.innerText;
+        const moduleActivityArr = moduleActivity.split(" ");
+        const moduleCode = moduleActivityArr.shift();
+        const lessonType = moduleActivityArr.join(" ");
+
+        // look for the index of this in data
+        const index = data.findIndex((item) => {
+            return (
+                moduleCode === item.moduleCode &&
+                item.lessonType === lessonType &&
+                classNo.includes(item.classNo)
+            );
+        });
+        if (index === -1) {
+            console.log(
+                `Couldn't find one for ${moduleCode} ${lessonType} ${classNo}!`
+            );
+        } else {
+            // set the dropdown menu to index+1
+
+            const select = class_.children[4].querySelector(
+                "select"
+            ) as HTMLSelectElement;
+
+            select.value = (index + 1).toString();
+            select.dispatchEvent(new Event("change"));
+
+            result = result.filter(
+                (item) =>
+                    moduleCode !== item.moduleCode ||
+                    item.lessonType !== lessonType ||
+                    !classNo.includes(item.classNo)
+            );
+        }
+    }
+
+    return result;
+}

@@ -1,22 +1,6 @@
-export interface SiteStruct {
-    name: string;
-    url: string;
-    searchUrl: string;
-    enabled: boolean;
-
-    icon?: string;
-    id: string;
-}
-
-export interface GroupStruct {
-    name: string;
-    enabled: string[];
-    id: string;
-    number: number;
-}
 
 export interface DOMMessageResponse {
-    payload: {
+    payload?: {
         text?: string;
         // sites?: SiteStruct[],
         // title?: string,
@@ -24,10 +8,11 @@ export interface DOMMessageResponse {
         // currentUrl? :string,
         [key: string]: any;
     };
+    error?: string;
 }
 
 export interface DOMMessage {
-    type: "MODULE_DATA"|"RANK_DATA";
+    type: "MODULE_DATA"|"RANK_DATA"|"EXPAND";
 
     // payload?: {
     //     index?: number,

@@ -172,7 +172,7 @@ const messagesFromReactAppListener = (
                 );
                 if (!classesContainer) {
                     sendResponse({
-                        error: "Rank classes dialog not found. Is it open?",
+                        error: "Rank Classes dialog not found. Is it open?",
                     });
                     return;
                 }

@@ -5,6 +5,9 @@ import { sendMessage, validateURL } from "./functions";
 import Button from "./components/Button";
 import Input from "./components/Input";
 import { SelectedClass } from "./types";
+import { ToastContainer, toast, ToastOptions } from "react-toastify";
+
+import "react-toastify/dist/ReactToastify.css";
 
 // https://tutreg.com/?share=CS2030S:LAB:12H,CS2030S:REC:13,CS2040S:TUT:14,CS2040S:REC:03,GEA1000:TUT:E09,HSI1000:WS:C13,HSI1000:LAB:21,MA1521:TUT:18,MA1521:TUT:11,HSI1000:LAB:02,HSI1000:WS:C02,GEA1000:TUT:D01,CS2040S:REC:04,CS2030S:REC:01,CS2030S:LAB:08A,CS2030S:LAB:08C,CS2030S:REC:03,CS2040S:REC:02,GEA1000:TUT:D02,HSI1000:WS:C01,HSI1000:LAB:01,MA1521:TUT:10,MA1521:TUT:1,HSI1000:LAB:03,HSI1000:WS:C03,CS2040S:REC:01,CS2030S:REC:04,CS2030S:LAB:08B,CS2030S:LAB:08D,CS2030S:REC:05,HSI1000:WS:C05,MA1521:TUT:12,MA1521:TUT:13,CS2030S:REC:06,CS2030S:LAB:08F,CS2030S:LAB:08G,CS2030S:REC:07,CS2030S:REC:08,CS2030S:LAB:08H,CS2030S:LAB:08E,CS2030S:REC:10,CS2030S:REC:11,CS2030S:LAB:10D,CS2030S:LAB:10C,CS2030S:REC:09
 const codeMap: { [key: string]: string } = {
@@ -25,6 +28,28 @@ const replacer = (str: string) => {
     }
 };
 
+const successStyles: ToastOptions = {
+    position: "top-center",
+    autoClose: 3000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+    theme: "dark",
+};
+
+const errorStyles: ToastOptions = {
+    position: "top-center",
+    autoClose: 7000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+    theme: "dark",
+};
+
 function App() {
     const [importUrl, setImportUrl] = useState("");
 
@@ -43,17 +68,18 @@ function App() {
         if (action === "expand") {
             return sendMessage({
                 type: "EXPAND",
-
-            }).then(console.log).catch(console.log)
+            })
+                .then(console.log)
+                .catch(console.log);
         }
 
-        const stripped = importUrl.replace("https://tutreg.com/order?", "")
+        const stripped = importUrl.replace("https://tutreg.com/order?", "");
 
-        const params = new URLSearchParams(stripped)
+        const params = new URLSearchParams(stripped);
 
         let classList: SelectedClass[] = [];
         for (const p of params) {
-            if (p[0] === 'share') {
+            if (p[0] === "share") {
                 classList = p[1].split(",").map((module) => ({
                     moduleCode: module.split(":")[0],
                     lessonType: replacer(module.split(":")[1]),
@@ -61,7 +87,6 @@ function App() {
                 }));
             }
         }
-  
 
         // const importStr = importUrl.split("?share=")[1];
         // Format the data
@@ -79,19 +104,41 @@ function App() {
             type,
             payload: classList,
         })
-            .then(result => {
+            .then((result) => {
                 if (result.error) {
-                    alert(result.error)
-                } else if (result.payload?.ranker === "try_again" && result.payload?.tries === 1) {
+                    // alert(result.error)
+                    toast.error(result.error, errorStyles);
+                } else if (
+                    result.payload?.ranker === "try_again" &&
+                    result.payload?.tries === 1
+                ) {
                     sendMessage({
                         type,
                         payload: classList,
-                        tries: result.payload?.tries
-                    }).then(result => {
+                        tries: result.payload?.tries,
+                    }).then((result) => {
                         if (result.error) {
-                            alert(result.error)
+                            // alert(result.error)
+                            toast.error(result.error, errorStyles);
+                        } else {
+                            toast.success(
+                                "Classes successfully ranked!",
+                                successStyles
+                            );
                         }
-                    })
+                    });
+                } else {
+                    if (action === "select") {
+                        toast.success(
+                            "Classes successfully selected!",
+                            successStyles
+                        );
+                    } else if (action === "rank") {
+                        toast.success(
+                            "Classes successfully ranked!",
+                            successStyles
+                        );
+                    }
                 }
             })
             .catch(console.log);
@@ -163,6 +210,7 @@ function App() {
                     How to use?{" "}
                 </a>
             </div>
+            <ToastContainer />
         </div>
     );
 }

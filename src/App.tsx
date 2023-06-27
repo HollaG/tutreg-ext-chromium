@@ -64,10 +64,19 @@ function App() {
 
     const [error, setError] = useState("");
 
-    const actionHandler = (action: "select" | "rank" | "expand") => {
+    const actionHandler = (
+        action: "select" | "rank" | "expand" | "auto_expand"
+    ) => {
         if (action === "expand") {
             return sendMessage({
                 type: "EXPAND",
+            })
+                .then(console.log)
+                .catch(console.log);
+        }
+        if (action === "auto_expand") {
+            return sendMessage({
+                type: "AUTO_EXPAND",
             })
                 .then(console.log)
                 .catch(console.log);
@@ -180,7 +189,7 @@ function App() {
             <div className="container p-1 flex justify-between">
                 <Button onClick={() => actionHandler("expand")}>
                     {" "}
-                    Expand Dialog
+                    Expand Popup
                 </Button>
 
                 <Button
@@ -200,6 +209,17 @@ function App() {
                     Auto-rank{" "}
                 </Button>
             </div>
+            <div className="container p-1 flex justify-center">
+                <Button onClick={() => actionHandler("auto_expand")}>
+                    {" "}
+                    Expand Popups automatically
+                </Button>
+            </div>
+            <p className="text-center text-xs text-gray-800">
+                {" "}
+                Automatically expands all popups (e.g. when selecting classes)
+                to full height{" "}
+            </p>
             <div className="text-center">
                 <a
                     href="https://tutreg.com/extension#usage"

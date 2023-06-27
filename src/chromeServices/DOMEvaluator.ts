@@ -1,6 +1,16 @@
 import { handleChromeError, sendMessage, sleep } from "../functions";
 import { DOMMessage, DOMMessageResponse, SelectedClass } from "../types";
 
+function updateIframe(this: HTMLIFrameElement, evt: Event) {
+    if (this) {
+        this.removeAttribute("height");
+        this.removeAttribute("style");
+        this.style.height = "100vh";
+        if (this.parentElement && this.parentElement.parentElement)
+            this.parentElement.parentElement.style.top = "0px";
+    }
+}
+
 // Function called when a new message is received
 const messagesFromReactAppListener = (
     msg: DOMMessage,
@@ -327,6 +337,45 @@ const messagesFromReactAppListener = (
                 break;
             }
 
+            case "AUTO_EXPAND": {
+                const callback = async (mutationList: any, observer: any) => {
+                    for (const mutation of mutationList) {
+                        Promise.resolve().then(() => {
+                            if (mutation.type === "childList") {
+                                console.log(
+                                    "A child node has been added or removed."
+                                );
+                            }
+                            const iframes = document.querySelectorAll("iframe");
+
+                            if (!iframes || !iframes.length) {
+                            }
+
+                            console.log({ iframes });
+                            iframes.forEach((iframe) => {
+                                iframe.removeEventListener(
+                                    "load",
+                                    updateIframe
+                                );
+                                iframe.addEventListener("load", updateIframe);
+                            });
+                        });
+                    }
+                };
+
+                const targetNode = document.getElementById("pt_modals");
+
+                const config = {
+                    attributes: false,
+                    childList: true,
+                    subtree: true,
+                };
+
+                const observer = new MutationObserver(callback);
+                if (targetNode) observer.observe(targetNode, config);
+
+                break;
+            }
             case "EXPAND": {
                 const iframes = document.querySelectorAll("iframe");
                 if (!iframes || !iframes.length) {

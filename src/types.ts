@@ -1,4 +1,3 @@
-
 export interface DOMMessageResponse {
     payload?: {
         text?: string;
@@ -12,7 +11,7 @@ export interface DOMMessageResponse {
 }
 
 export interface DOMMessage {
-    type: "MODULE_DATA"|"RANK_DATA"|"EXPAND";
+    type: "MODULE_DATA" | "RANK_DATA" | "EXPAND" | "AUTO_EXPAND";
 
     // payload?: {
     //     index?: number,
@@ -22,7 +21,7 @@ export interface DOMMessage {
     //     enabled?: boolean
     // }
     payload?: any;
-    tries?: number
+    tries?: number;
 }
 
 export interface SelectedClass {

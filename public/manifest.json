@@ -2,7 +2,7 @@
     "short_name": "tutreg.com Companion",
     "name": "Tutreg Companion Extension",
     "description": "Companion extension for tutreg.com. Select and rank classes on EduRec with just two clicks.",
-    "version": "1.2",
+    "version": "1.3",
     "manifest_version": 3,
     "action": {
         "default_popup": "index.html",
@@ -21,7 +21,6 @@
             "matches": [
                 "https://myedurec.nus.edu.sg/*",
                 "http://myedurec.nus.edu.sg/*"
-                
             ],
             "js": [
                 "./static/js/content.js"

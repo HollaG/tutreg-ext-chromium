@@ -337,6 +337,8 @@ const messagesFromReactAppListener = (
                 break;
             }
 
+            // ALlow a fallthrough case : we want to run once of expand when auto-expand is clicked
+            // @ts-expect-error
             case "AUTO_EXPAND": {
                 const callback = async (mutationList: any, observer: any) => {
                     for (const mutation of mutationList) {
@@ -373,8 +375,11 @@ const messagesFromReactAppListener = (
 
                 const observer = new MutationObserver(callback);
                 if (targetNode) observer.observe(targetNode, config);
+                // sendResponse({ payload: { text: "Hello from content.js" } });
+                // return true;
+                // break;
 
-                break;
+                // allow fallthrough case
             }
             case "EXPAND": {
                 const iframes = document.querySelectorAll("iframe");

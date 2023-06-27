@@ -75,6 +75,7 @@ function App() {
                 .catch(console.log);
         }
         if (action === "auto_expand") {
+            setHasEnabledAuto(true);
             return sendMessage({
                 type: "AUTO_EXPAND",
             })
@@ -152,6 +153,7 @@ function App() {
             })
             .catch(console.log);
     };
+    const [hasEnabledAuto, setHasEnabledAuto] = useState(false);
 
     return (
         <div className="container mx-auto  p-5">
@@ -210,9 +212,14 @@ function App() {
                 </Button>
             </div>
             <div className="container p-1 flex justify-center">
-                <Button onClick={() => actionHandler("auto_expand")}>
+                <Button
+                    onClick={() => actionHandler("auto_expand")}
+                    moreProps={{ disabled: hasEnabledAuto }}
+                >
                     {" "}
-                    Expand Popups automatically
+                    {!hasEnabledAuto
+                        ? "Expand Popups automatically"
+                        : "Popups now auto-expand"}
                 </Button>
             </div>
             <p className="text-center text-xs text-gray-800">

@@ -25,6 +25,8 @@ const messagesFromReactAppListener = (
             case "MODULE_DATA": {
                 let data = msg.payload as SelectedClass[];
 
+                console.log({ data });
+
                 const resultContainer = msg.payload?.map(
                     (class_: SelectedClass) => ({ ...class_ })
                 );
@@ -95,7 +97,9 @@ const messagesFromReactAppListener = (
                         // see: https://bobbyhadz.com/blog/typescript-property-innertext-not-exist-type-element
                         const classNoContainer = class_
                             .children[0] as HTMLElement;
-                        const classNo = classNoContainer.innerText;
+                        const classNo =
+                            classNoContainer.innerText.split(" - ")[1] ||
+                            classNoContainer.innerText;
 
                         const lessonTypeContainer = class_
                             .children[1] as HTMLElement;
@@ -117,7 +121,8 @@ const messagesFromReactAppListener = (
                         if (match) {
                             // great, tick the checkbox
                             console.log(
-                                `Found a match for ${moduleName} ${lessonType} ${classNo}`
+                                `Found a match for ${moduleName} ${lessonType} ${classNo}`,
+                                { match }
                             );
 
                             const checkbox = class_.children[4].querySelector(
@@ -246,38 +251,42 @@ const messagesFromReactAppListener = (
 
                 // result = await ranker(children, data);
                 console.log({ tries: msg.tries });
-                ranker(children, data).then((result) => {
-                    console.log({ result });
-                    if (result.length) {
-                        // sendResponse({
-                        //     error: `Please click the 'Auto-rank' button again. This is required due to the way NUS has coded their website.\nSorry for the inconvience. If this message persists, contact the developer at https://t.me/+sbR6NJfo7axkNWE1.`
-                        // })
-                        console.log("trying again!!!");
-                        if (msg.tries && msg.tries === 1) {
-                            // second try already, give up
-                            sendResponse({
-                                error: `${
-                                    result.length
-                                } classes could not be ranked: ${result
-                                    .map(
-                                        (item) =>
-                                            `${item.moduleCode} ${item.lessonType} ${item.classNo}`
-                                    )
-                                    .join(", ")}.`,
-                            });
+                ranker(children, data).then((_) => {
+                    console.log({ _ });
+
+                    // always try again
+                    ranker(children, data).then((result) => {
+                        if (result.length) {
+                            // sendResponse({
+                            //     error: `Please click the 'Auto-rank' button again. This is required due to the way NUS has coded their website.\nSorry for the inconvience. If this message persists, contact the developer at https://t.me/+sbR6NJfo7axkNWE1.`
+                            // })
+                            console.log("trying again!!!");
+                            if (msg.tries && msg.tries === 1) {
+                                // second try already, give up
+                                sendResponse({
+                                    error: `${
+                                        result.length
+                                    } classes could not be ranked: ${result
+                                        .map(
+                                            (item) =>
+                                                `${item.moduleCode} ${item.lessonType} ${item.classNo}`
+                                        )
+                                        .join(", ")}.`,
+                                });
+                            } else {
+                                sendResponse({
+                                    payload: {
+                                        ranker: "try_again",
+                                        tries: 1,
+                                    },
+                                });
+                            }
                         } else {
                             sendResponse({
-                                payload: {
-                                    ranker: "try_again",
-                                    tries: 1,
-                                },
+                                payload: { text: "Successfully ranked." },
                             });
                         }
-                    } else {
-                        sendResponse({
-                            payload: { text: "Successfully ranked." },
-                        });
-                    }
+                    });
                 });
 
                 // const result = ranker(children, data);
@@ -432,7 +441,7 @@ async function ranker(children: HTMLCollection, data: SelectedClass[]) {
         const class_ = children[i];
 
         const classNoContainer = class_.children[0] as HTMLElement;
-        const classNo = classNoContainer.innerText;
+        const classNo = classNoContainer.innerText.split(" - ")[1];
 
         const moduleActivityContainer = class_.children[1] as HTMLElement;
         const moduleActivity = moduleActivityContainer.innerText;
@@ -461,7 +470,9 @@ async function ranker(children: HTMLCollection, data: SelectedClass[]) {
             );
         } else {
             // set the dropdown menu to index+1
-
+            console.log(
+                `Ranked ${moduleCode} ${lessonType} ${classNo} to ${index + 1}`
+            );
             select.value = (index + 1).toString();
             select.dispatchEvent(new Event("change"));
             await sleep(10);

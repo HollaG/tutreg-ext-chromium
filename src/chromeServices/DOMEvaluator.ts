@@ -101,6 +101,10 @@ const messagesFromReactAppListener = (
                             classNoContainer.innerText.split(" - ")[1] ||
                             classNoContainer.innerText;
 
+                        const classTypeLabel = classNoContainer.innerText.split(" - ")[0].trim() || ""; // for a classNoContainer T - T01 - 12345, this will be T
+                        // append this to tutreg's classNo
+
+
                         const lessonTypeContainer = class_
                             .children[1] as HTMLElement;
                         const lessonTypeContainerNested =
@@ -111,10 +115,12 @@ const messagesFromReactAppListener = (
 
                         // Check if this row's moduleCode matches, lessonType matches, and classNo is a subset
                         const match = data.find((class_) => {
+                            const combinedClassNo = `${classTypeLabel}${class_.classNo}`;
                             return (
                                 moduleName.includes(class_.moduleCode) &&
                                 class_.lessonType === lessonType &&
-                                classNo.includes(class_.classNo)
+                                // classNo.includes(class_.classNo)
+                                classNo === combinedClassNo
                             );
                         });
 
@@ -139,7 +145,7 @@ const messagesFromReactAppListener = (
                                 (class_) =>
                                     !moduleName.includes(class_.moduleCode) ||
                                     class_.lessonType !== lessonType ||
-                                    !classNo.includes(class_.classNo)
+                                    classNo !== `${classTypeLabel}${class_.classNo}`
                             );
                         } else {
                             // do nothing
@@ -151,14 +157,13 @@ const messagesFromReactAppListener = (
                 }
                 if (data.length) {
                     sendResponse({
-                        error: `${
-                            data.length
-                        } classes could not be found: ${data
-                            .map(
-                                (item) =>
-                                    `${item.moduleCode} ${item.lessonType} ${item.classNo}`
-                            )
-                            .join(", ")}`,
+                        error: `${data.length
+                            } classes could not be found: ${data
+                                .map(
+                                    (item) =>
+                                        `${item.moduleCode} ${item.lessonType} ${item.classNo}`
+                                )
+                                .join(", ")}`,
                     });
                 }
                 sendResponse({
@@ -264,14 +269,13 @@ const messagesFromReactAppListener = (
                             if (msg.tries && msg.tries === 1) {
                                 // second try already, give up
                                 sendResponse({
-                                    error: `${
-                                        result.length
-                                    } classes could not be ranked: ${result
-                                        .map(
-                                            (item) =>
-                                                `${item.moduleCode} ${item.lessonType} ${item.classNo}`
-                                        )
-                                        .join(", ")}.`,
+                                    error: `${result.length
+                                        } classes could not be ranked: ${result
+                                            .map(
+                                                (item) =>
+                                                    `${item.moduleCode} ${item.lessonType} ${item.classNo}`
+                                            )
+                                            .join(", ")}.`,
                                 });
                             } else {
                                 sendResponse({
@@ -449,13 +453,20 @@ async function ranker(children: HTMLCollection, data: SelectedClass[]) {
         const moduleCode = moduleActivityArr.shift();
         const lessonType = moduleActivityArr.join(" ");
 
+        const classTypeLabel = classNoContainer.innerText.split(" - ")[0].trim() || ""; // for a classNoContainer T - T01 - 12345, this will be T
+        // append this to tutreg's classNo
+
         // look for the index of this in data
         // console.log({data})
+
+
         const index = data.findIndex((item) => {
+            const combinedClassNo = `${classTypeLabel}${item.classNo}`;
+
             return (
                 moduleCode === item.moduleCode &&
                 item.lessonType === lessonType &&
-                classNo.includes(item.classNo)
+                classNo === combinedClassNo
             );
         });
         // console.log("index", index)
@@ -480,7 +491,7 @@ async function ranker(children: HTMLCollection, data: SelectedClass[]) {
                 (item) =>
                     moduleCode !== item.moduleCode ||
                     item.lessonType !== lessonType ||
-                    !classNo.includes(item.classNo)
+                    classNo !== `${classTypeLabel}${item.classNo}`
             );
         }
     }
